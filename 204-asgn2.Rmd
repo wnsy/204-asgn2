@@ -5,6 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+.libPaths("H:/R")
 ```
 
 # Problem setup - load data and exploratory data analysis (EDA)
