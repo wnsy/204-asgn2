@@ -1,0 +1,33 @@
+---
+title: "204-asgn2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem setup - load data and exploratory data analysis (EDA)
+We'll start by looking at the "Abalone" data. 
+
+The data is supplied in a CSV file. Let's start by loading this into R:
+```{r load data, echo=TRUE}
+abalone <- read.csv("abalone.csv")
+# , row.names=1)
+
+```
+
+Now, we should split the data into two parts - a section for exploration and training, and another for testing.
+
+```{r split abalone data, echo=TRUE}
+train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
+abalone.train <- abalone[train.idx, ]
+abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
+```
+
+# EDA
+
+We should start by looking at some basic descriptive information about the data:
+```{r EDA.1, echo=TRUE}
+ summary(abalone.train)
+```
