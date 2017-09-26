@@ -13,8 +13,6 @@ We'll start by looking at the "Abalone" data.
 The data is supplied in a CSV file. Let's start by loading this into R:
 ```{r load data, echo=TRUE}
 abalone <- read.csv("abalone.csv")
-# , row.names=1)
-
 ```
 
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
@@ -30,4 +28,17 @@ abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE i
 We should start by looking at some basic descriptive information about the data:
 ```{r EDA.1, echo=TRUE}
  summary(abalone.train)
+```
+
+
+Then we are looking to plot the response (the measured number of rings):
+```{r EDA.2, echo=TRUE}
+hist(abalone.train$diameter)
+```
+
+
+
+Next, we should examine the correlations in our data:
+```{r EDA.3, echo=TRUE}
+cor(abalone.train)
 ```
