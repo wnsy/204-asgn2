@@ -33,12 +33,20 @@ We should start by looking at some basic descriptive information about the data:
 
 Then we are looking to plot the response (the measured number of rings):
 ```{r EDA.2, echo=TRUE}
-hist(abalone.train$diameter)
+hist(abalone.train$rings)
 ```
 
 
 
 Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
-cor(abalone.train)
+as.matrix(cor(na.omit(abalone.train[,-1])))
+# cor(abalone.train)
 ```
+
+```{r EDA.4, echo=TRUE}
+plot(abalone.train, pch=19, col="orange")
+```
+
+
+
