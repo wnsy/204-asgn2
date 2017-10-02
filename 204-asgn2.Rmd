@@ -6,6 +6,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+#Group members
+
 
 # Problem setup - load data and exploratory data analysis (EDA)
 We'll start by looking at the "Abalone" data. 
@@ -23,7 +25,6 @@ abalone.train <- abalone[train.idx, ]
 abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
 ```
 
-# EDA
 
 We should start by looking at some basic descriptive information about the data:
 ```{r EDA.1, echo=TRUE}
@@ -47,6 +48,9 @@ as.matrix(cor(na.omit(abalone.train[,-1])))
 ```{r EDA.4, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
+
+## Regression - k-Nearest Neighbours (kNN)
+
 
 
 
