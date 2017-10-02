@@ -19,7 +19,7 @@ abalone <- read.csv("abalone.csv")
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
 
 ```{r split abalone data, echo=TRUE}
-train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
+train.idx <- sample(nrow(abalone), 0.*nrow(abalone))
 abalone.train <- abalone[train.idx, ]
 abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
 ```
