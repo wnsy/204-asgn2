@@ -21,7 +21,7 @@ abalone <- read.csv("abalone.csv")
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
 
 ```{r split abalone data, echo=TRUE}
-train.idx <- sample(nrow(abalone), 0.*nrow(abalone))
+train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
 abalone.train <- abalone[train.idx, ]
 abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
 ```
@@ -38,6 +38,10 @@ Then we are looking to plot the response (the measured number of rings):
 hist(abalone.train$rings)
 ```
 
+```{r EDA.3, echo=TRUE}
+#as.matrix(cor(na.omit(abalone.train[,-1])))
+ #cor(abalone.train)
+```
 
 
 Next, we should examine the correlations in our data:
