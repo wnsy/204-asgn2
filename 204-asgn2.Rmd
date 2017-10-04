@@ -5,10 +5,15 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-.libPaths("H:/R")
+#.libPaths("H:/R")
+library(ggplot2)
+#library(plyr)
 ```
-#Group members
 
+#Group members
+- Ayesha Wan Ismail
+- Bhavisha Solanki
+- Ruth Banda
 
 # Problem setup - load data and exploratory data analysis (EDA)
 We'll start by looking at the "Abalone" data. 
@@ -18,10 +23,18 @@ The data is supplied in a CSV file. Let's start by loading this into R:
 abalone <- read.csv("abalone.csv")
 ```
 
+As the abalone adds one ring to their shell each year but their first year, we could estimate the age of the abalone fairly precise by adding 1.5 to the number of rings (Credit: [Cleaning abalone data]). 
+
+```{r make a new column Age, echo=TRUE}
+abalone$age <- NA
+abalone
+```
+
+
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
 
 ```{r split abalone data, echo=TRUE}
-train.idx <- sample(nrow(abalone), 0.*nrow(abalone))
+train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
 abalone.train <- abalone[train.idx, ]
 abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
 ```
@@ -31,27 +44,87 @@ We should start by looking at some basic descriptive information about the data:
 ```{r EDA.1, echo=TRUE}
  summary(abalone.train)
 ```
+Here, we focus on the training data instead of the entire data so that when we modify our features like doing  transformations will offer good generalisation performance.
 
+As shown above, we are dealing with continuous data, hence the response for the number of `Rings` is our continuous data making it a regression problem. 
 
 Then we are looking to plot the response (the measured number of rings):
 ```{r EDA.2, echo=TRUE}
 hist(abalone.train$rings)
 ```
 
+Let's look at the weight of the whole abalone first: 
+```{r EDA.2.1, echo=TRUE}
+qplot(rings,
+      data = abalone,
+      geom = "histogram")
+```
 
+However, we are more interested in finding whether different sexes affect the distributions. So we have to make separate plots for each sex by using `facets` argument in the `qlot()` function. It will have the tilde on the left hand side to let us know that what variable we have to separate the data by for vertically arranged panels and the right hand side lets us know what variable we want to separate by for horizontal panels. If we want only one and not both, we can use a period for the other axis, like below. The `binwidth` argument is added so `ggplot` will no longer complain (Source: [Cleaning Abalone data]).
 
+```{r EDA.2.2, echo=TRUE}
+qplot(rings,
+      data = abalone,
+      geom = "histogram",
+      facets = sex~.,
+      binwidth = 20)
+```
+
+```{r EDA.2.2 sex and ordered factor, echo=TRUE}
+abalone$sex <- ordered(abalone$sex,
+                       levels = c("I", "M", "F"),
+                       labels = c("Infant", "Male", "Female"))
+
+#redo histogram
+qplot(rings,
+      data = abalone,
+      geom = "histogram",
+      facets = sex~.,
+      binwidth = 20)
+```
+
+```{r EDA.2.3 boxplot, echo=TRUE}
+qplot(sex, rings,
+      data = abalone,
+      geom = "boxplot",
+      fill = sex)
+```
+
+```{r EDA.2.4, echo=TRUE}
+qplot(diameter, rings, 
+      data = abalone, 
+      color = sex)
+```
+      
+      
+     
+```{r EDA.2.5, echo=TRUE}
+qplot(diameter, rings, 
+      data = abalone, 
+      color = sex)  +
+  geom_abline(slope = 1)
+``` 
+     
+```{r save, echo=TRUE}  
+     save(abalone, file = "abalone_trimmed.Rdata")
+```
+     
 Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
 as.matrix(cor(na.omit(abalone.train[,-1])))
-# cor(abalone.train)
 ```
 
 ```{r EDA.4, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
-## Regression - k-Nearest Neighbours (kNN)
+## Regression - k-Nearest Neighbours (kNN) (Predict)
 
+We are trying to predict the age of the abalone based on the diameter of the shell. They grow by adding new layers to their shell, which means there is an increase of the shell diameter, in addition to the entire inside of the shell which will increase the thickness of the shell (Source: [Abalone Reproduction and Growth])
 
+## (Insight)
+ We also want to gain an insight of the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
 
+[Abalone Reproduction and Growth]: http://www.marinebio.net/marinescience/06future/abrepro.htm
 
+[Cleaning Abalone data]: http://shapbio.me/courses/biolB215s13/abalone_cleaning.html
