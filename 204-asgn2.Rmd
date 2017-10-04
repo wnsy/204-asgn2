@@ -16,6 +16,7 @@ We'll start by looking at the "Abalone" data.
 The data is supplied in a CSV file. Let's start by loading this into R:
 ```{r load data, echo=TRUE}
 abalone <- read.csv("abalone.csv")
+f <- rings~.
 ```
 
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
@@ -39,22 +40,163 @@ hist(abalone.train$rings)
 ```
 
 ```{r EDA.3, echo=TRUE}
-#as.matrix(cor(na.omit(abalone.train[,-1])))
- #cor(abalone.train)
+ cor(abalone.train[, -1])
+ cor(abalone.test[ , -1])
+```
+get rid of length, height,weight.shucked, weight.viscera
+
+```{r EDA.3, echo=TRUE}
+abalone.train$length <- NULL
+abalone.train$height <- NULL
+abalone.train$weight.shucked <- NULL
+abalone.train$weight.viscera <- NULL
+
+abalone.test$length <- NULL
+abalone.test$height <- NULL
+abalone.test$weight.shucked <- NULL
+abalone.test$weight.viscera <- NULL
+
+abalone.train
 ```
 
 
 Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
-as.matrix(cor(na.omit(abalone.train[,-1])))
-# cor(abalone.train)
-```
-
-```{r EDA.4, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
+```{r EDA.3, echo=TRUE}
+MSE <- function(y, yhat) mean((y - yhat)^2)
+
+RSQ <- function(y, yhat) 1 - sum((y - yhat)^2) / sum((y - mean(y))^2)
+```
+
+```{r knn setup data, echo=TRUE}
+known.X <- abalone.train[, 2:4]
+known.y <- abalone.train$rings
+
+X <- abalone.test[, 2:4]
+y <- abalone.test$rings
+```
+
+```{r standardise, echo=TRUE}
+known.X <- scale(known.X)
+X <- scale(X, center=attr(known.X, "scaled:center"), scale=attr(known.X, "scaled:scale"))
+```
+
+```{r set k, echo=TRUE}
+k <- 4
+```
+
+```{r EDA.3, echo=TRUE}
+yhat.knn <- numeric(nrow(X))
+```
+
+```{r knn predict, echo=TRUE}
+knn <- function(f, data, k=1) {
+  known.X <- scale(model.matrix(f, data)[, -1])
+  known.y <- model.response(model.frame(f, data))
+  
+  structure(list(k=k, f=f, known.X=known.X, known.y=known.y), class="knn")
+}
+
+predict.knn <- function(knn, newdata) {
+  if (class(knn) != "knn") stop("Supplied model was not a k-Nearest Neighbour object")
+  
+  known.X <- knn$known.X
+  known.y <- knn$known.y
+  
+  X <- scale(model.matrix(knn$f, newdata)[, -1], 
+             scale=attr(known.X, "scaled:scale"), 
+             center=attr(known.X, "scaled:center"))
+  
+  k.nearest <- matrix(apply(X, 1, function(X.i, known.X, known.y, k) {
+    d <- rowSums(sweep(known.X, 2, X.i)^2)
+    known.y[head(order(d), k)]
+  }, known.X=known.X, known.y=known.y, k=knn$k), nrow=knn$k)
+  
+  if (is.factor(known.y)) {
+    factor(apply(k.nearest, 2, function(neighbours) {
+      t <- table(neighbours)
+      names(t[which.max(t)])
+    }), levels=levels(known.y), ordered=is.ordered(known.y))
+  } else if (is.character(known.y)) {
+    apply(k.nearest, 2, function(neighbours) {
+      t <- table(neighbours)
+      names(t[which.max(t)])
+    })
+  } else {
+    colMeans(k.nearest)
+  }
+}
+```
+
+apply for loop over 2 columns, 1 loop over the rows
+regression take out factor and character 
+
+```{r EDA.3, echo=TRUE}
+
+
+source("knn.R")
+
+MSE <- function(y, yhat) mean((y - yhat)^2)
+
+evaluate.knn <- function(f, train, test, error, k) {
+  mdl <- knn(f, train, k)
+  
+  ## extract the known outcomes from the test set
+  y <- model.response(model.frame(f, test))
+  
+  ## obtain the model predictions on the test data
+  yhat <- predict(mdl, test)
+  
+  ## returns the error of the predictions (e.g., MSE)
+  error(y, yhat)
+}
+
+evaluate.knn.cv <- function(f, data, K, folds, error, knn.k) {
+  mean(sapply(seq(K), function(k) {
+    leave.in <- data[folds != k, ] ## data not in our current fold
+    hold.out <- data[folds == k, ] ## data in our current fold
+    
+    evaluate.knn(f, leave.in, hold.out, error, knn.k)
+  }))
+}
+
+K <- 10
+folds <- sample(rep(seq(K), length.out=nrow(abalone.train)))
+
+knn.k <- c(1, 2,3	,5,	8,	13,	21,	34,	55,	89,	144,	233,	377,	610)
+wse <- rep(NA, length(knn.k))
+cve <- rep(NA, length(knn.k))
+for (j in seq_along(knn.k)) {
+  wse[j] <- evaluate.knn(f, abalone.train, abalone.train, MSE, knn.k[j])
+  cve[j] <- evaluate.knn.cv(f, abalone.train, K, folds, MSE, knn.k[j])
+  cat(".")
+}
+cat("\n")
+```
+
+LINE 169 parameters looking at knn(want something that starts off small and gets bigger and useful. samll gives nice spread and bigger doesn't)
+sapply= apply ans simplify
+
+```{r EDA.3, echo=TRUE}
+plot(knn.k, wse, type="l", lwd=2, col="orange", ylab="Error", ylim=range(c(0, wse, cve)))
+lines(knn.k, cve, lwd=2, col="purple")
+abline(h=min(cve), lty=2, col="gray")
+abline(v=knn.k[which.min(cve)], lty=2, col="gray")
+text(knn.k[which.min(cve)], min(cve), sprintf("CV-min=(%d, %.2f)", knn.k[which.min(cve)], min(cve)), col="gray", adj=c(-0.05, -0.5))
+legend("bottomright", c("Within-Sample", "Out-of-Sample (CV)"), col=c("orange", "purple"), lwd=2, bty="n")
+
+```
+
+
 ## Regression - k-Nearest Neighbours (kNN)
+```{r , echo=TRUE}
+k.selected <- knn.k[which.min(cve)]
+knn.mdl <- knn(f, abalone.train, k.selected)
+yhat.knn <- predict(knn.mdl, abalone.test)
+```
 
 
 
