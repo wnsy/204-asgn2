@@ -45,7 +45,7 @@ hist(abalone.train$rings)
 ```
 get rid of length, height,weight.shucked, weight.viscera
 
-```{r EDA.3, echo=TRUE}
+```{r EDA.4, echo=TRUE}
 abalone.train$length <- NULL
 abalone.train$height <- NULL
 abalone.train$weight.shucked <- NULL
@@ -61,11 +61,11 @@ abalone.train
 
 
 Next, we should examine the correlations in our data:
-```{r EDA.3, echo=TRUE}
+```{r EDA.5, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
-```{r EDA.3, echo=TRUE}
+```{r EDA.6, echo=TRUE}
 MSE <- function(y, yhat) mean((y - yhat)^2)
 
 RSQ <- function(y, yhat) 1 - sum((y - yhat)^2) / sum((y - mean(y))^2)
@@ -88,7 +88,7 @@ X <- scale(X, center=attr(known.X, "scaled:center"), scale=attr(known.X, "scaled
 k <- 4
 ```
 
-```{r EDA.3, echo=TRUE}
+```{r EDA.7, echo=TRUE}
 yhat.knn <- numeric(nrow(X))
 ```
 
@@ -134,7 +134,7 @@ predict.knn <- function(knn, newdata) {
 apply for loop over 2 columns, 1 loop over the rows
 regression take out factor and character 
 
-```{r EDA.3, echo=TRUE}
+```{r EDA.8, echo=TRUE}
 
 
 source("knn.R")
@@ -180,7 +180,7 @@ cat("\n")
 LINE 169 parameters looking at knn(want something that starts off small and gets bigger and useful. samll gives nice spread and bigger doesn't)
 sapply= apply ans simplify
 
-```{r EDA.3, echo=TRUE}
+```{r EDA.9, echo=TRUE}
 plot(knn.k, wse, type="l", lwd=2, col="orange", ylab="Error", ylim=range(c(0, wse, cve)))
 lines(knn.k, cve, lwd=2, col="purple")
 abline(h=min(cve), lty=2, col="gray")
