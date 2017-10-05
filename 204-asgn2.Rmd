@@ -5,7 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#.libPaths("H:/R")
+.libPaths("H:/R")
 library(ggplot2)
 #library(plyr)
 ```
@@ -25,11 +25,6 @@ f <- rings~.
 ```
 
 As the abalone adds one ring to their shell each year but their first year, we could estimate the age of the abalone fairly precise by adding 1.5 to the number of rings (Credit: [Cleaning abalone data]). 
-
-```{r make a new column Age, echo=TRUE}
-abalone$age <- NA
-abalone
-```
 
 
 Now, we should split the data into two parts - a section for exploration and training, and another for testing.
@@ -54,7 +49,7 @@ Then we are looking to plot the response (the measured number of rings):
 hist(abalone.train$rings)
 ```
 
-
+ 
 ```{r EDA.3, echo=TRUE}
  cor(abalone.train[, -1])
  cor(abalone.test[ , -1])
@@ -73,7 +68,6 @@ abalone.test$height <- NULL
 abalone.test$weight.shucked <- NULL
 abalone.test$weight.viscera <- NULL
 
-abalone.train
 ```
 
 
@@ -120,6 +114,9 @@ qplot(sex, rings,
       fill = sex)
 ```
 
+
+
+
 ```{r EDA.2.4, echo=TRUE}
 qplot(diameter, rings, 
       data = abalone, 
@@ -132,41 +129,23 @@ qplot(diameter, rings,
 qplot(diameter, rings, 
       data = abalone, 
       color = sex)  +
-  geom_abline(slope = 1)
+  geom_smooth(slope = 1)
 ``` 
      
 ```{r save, echo=TRUE}  
      save(abalone, file = "abalone_trimmed.Rdata")
 ```
      
+## Regression - k-Nearest Neighbours (kNN)
 
+We are trying to predict the age of the abalone based on the diameter of the shell. They grow by adding new layers to their shell, which means there is an increase of the shell diameter, in addition to the entire inside of the shell which will increase the thickness of the shell (Source: [Abalone Reproduction and Growth])
 
-```{r EDA.6, echo=TRUE}
+```{r MSE, echo=TRUE}
 MSE <- function(y, yhat) mean((y - yhat)^2)
 
 RSQ <- function(y, yhat) 1 - sum((y - yhat)^2) / sum((y - mean(y))^2)
 ```
 
-```{r knn setup data, echo=TRUE}
-known.X <- abalone.train[, 2:4]
-known.y <- abalone.train$rings
-
-X <- abalone.test[, 2:4]
-y <- abalone.test$rings
-```
-
-```{r standardise, echo=TRUE}
-known.X <- scale(known.X)
-X <- scale(X, center=attr(known.X, "scaled:center"), scale=attr(known.X, "scaled:scale"))
-```
-
-```{r set k, echo=TRUE}
-k <- 4
-```
-
-```{r EDA.7, echo=TRUE}
-yhat.knn <- numeric(nrow(X))
-```
 
 ```{r knn predict, echo=TRUE}
 knn <- function(f, data, k=1) {
@@ -211,11 +190,6 @@ apply for loop over 2 columns, 1 loop over the rows
 regression take out factor and character 
 
 ```{r EDA.8, echo=TRUE}
-
-
-source("knn.R")
-
-MSE <- function(y, yhat) mean((y - yhat)^2)
 
 evaluate.knn <- function(f, train, test, error, k) {
   mdl <- knn(f, train, k)
@@ -267,17 +241,40 @@ legend("bottomright", c("Within-Sample", "Out-of-Sample (CV)"), col=c("orange", 
 ```
 
 
-## Regression - k-Nearest Neighbours (kNN)
 ```{r , echo=TRUE}
 k.selected <- knn.k[which.min(cve)]
 knn.mdl <- knn(f, abalone.train, k.selected)
 yhat.knn <- predict(knn.mdl, abalone.test)
 ```
 
-We are trying to predict the age of the abalone based on the diameter of the shell. They grow by adding new layers to their shell, which means there is an increase of the shell diameter, in addition to the entire inside of the shell which will increase the thickness of the shell (Source: [Abalone Reproduction and Growth])
 
 ## (Insight)
- We also want to gain an insight of the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
+ We also want to gain an insight of the age of the abalone based on the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
+ 
+## Linear Modelling 
+
+
+```{r lm.part1 , echo=TRUE}
+abalone.lm <- lm(f, abalone.train)
+yhat.lm <- predict(abalone.lm, abalone.test)
+
+```
+
+
+```{r aval lm.part1 , echo=TRUE}
+print(MSE(abalone.test$rings, yhat.lm))
+print(RSQ(abalone.test$rings, yhat.lm))
+
+```
+
+```{r summary.lm , echo=TRUE}
+summary(abalone.lm)
+
+```
+
+
+
+
 
 [Abalone Reproduction and Growth]: http://www.marinebio.net/marinescience/06future/abrepro.htm
 
