@@ -5,7 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#.libPaths("H:/R")
+.libPaths("H:/R")
 library(ggplot2)
 library(rpart)
 library(partykit)
@@ -41,30 +41,37 @@ abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE i
 
 Now we can focus on the analysis. We explore the data using simple visualisation and descriptive statistics to see if we can focus on certain features (rather than all features) to make the visualisation and analysis easier.
 
+
 ## Exploratory Data Analysis (EDA)
 The purpose of EDA is to gain a better understanding of the abalone data so that after performing some basic EDA before modelling would decrease the time and effort later required to get good-performing models. 
 
 So, we should start by looking at some basic descriptive information about the data:
+
 ```{r EDA.1, echo=TRUE}
  summary(abalone.train)
 ```
-Here, we focus on the training data instead of the entire data so that when we modify our features like doing  transformations will offer good generalisation performance.
 
-As shown above, we are dealing with continuous data, hence the response for the number of `Rings` is our continuous data making it a regression problem. 
 
-Then we plot the response (the measured number of rings):
+
+As shown above, we are dealing with continuous data, the response will be using  `Rings` is our continuous data, making it a regression problem. 
+
+Then we are looking to plot the response (the measured number of rings) to see if it is well-shaped and distributed nicely 
 ```{r EDA.2, echo=TRUE}
 hist(abalone.train$rings)
 ```
+The response has only the slightest hint of skew
+
 
 Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
  cor(abalone.train[, -1])
 ```
+
 Looking at the results of the correlations in our data, there is not much of strong correlation between the features for `length`, `height`, `weight.shucked` and `weight.viscera`. However, the relationship between the features of the `sex`, `diameter`, `weight.whole`, `weight.shell` and the `rings` response is considerably stronger. 
 
 So this is a good sign that we can build the predictive models based on the data. We back it up with a visual analysis (a scatterplot) of the data:
 
+looking at the results we can see that there's slight relationship between length and diameter, weight.whole,weight.shucked, weight.viscera and weight.shell.
 ```{r EDA.3.5, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
@@ -102,7 +109,11 @@ plot(abalone.train, pch=19, col="orange")
 ```
 
 
+We can see a lot of straight lines indicating  strong correlations.The visual relationships between diameter and rings, and weight.whole and rings look really good but weight.shell seems a bit more scattered and there's a possibility that it could be less useful for plotting the data
+
+
 However, we are more interested in finding whether different sexes affect the distributions. We make a boxplot using `qlot()` from `ggplot2` library to see some of the crucial features in the data than the ones with the earlier plotted historgrams. So we can do this by putting the `rings` on the y-axis, separting it by `sex` on the x-axis. The `geom` is set to boxplot. There is also a `fill` argument which the `qlot()` will then turn the factor column into 'prettier' colour scheme.  (Source: [Cleaning Abalone data]).
+
 ```{r boxplot, echo=TRUE}
 qplot(sex, rings,
       data = abalone,
@@ -135,12 +146,16 @@ We are trying to predict the age of the abalone based on the diameter of the she
 We are working towards a regression problem as shown/confirmed by our EDA, so we define two functions that we will use later to evaluate our models. One is to compute mean squared error (MSE) and another is to compute the coefficient of determination (R-Squared) of predictions. These functions work on two vectors: a vector of known outcomes (`y`) and a vector of model predictions (`yhat`):
 
 
+
+Set up the functions that will be used to help evaluate the models- one for the mean squared error(MSE) andf the other to compute the cofficient of determination(R-Squared) of predictions. The functions work on the vector of known outcomes (y) and the other for unknown outcomes(prediction(yhat))
 ```{r regression evaluators, echo=TRUE}
 MSE <- function(y, yhat) mean((y - yhat)^2)
 
 RSQ <- function(y, yhat) 1 - sum((y - yhat)^2) / sum((y - mean(y))^2)
 ```
 
+# Cross validation
+Fisrt we scale our data to make sure that their are all of similar magnitude(contributes equally). Use the sweep() function to sweep out the rows and columns of a matrix,the apply function (2) loops over 2 columns of the neighbours
 
 ```{r knn predict, echo=TRUE}
 knn <- function(f, data, k=1) {
@@ -181,9 +196,15 @@ predict.knn <- function(knn, newdata) {
 }
 ```
 
-apply for loop over 2 columns, 1 loop over the rows
-regression take out factor and character 
 
+# Modelling process encapsulation and
+encapsulating the modelling process,train the model under the given requirements. Use the predict() function to obtain model predictions on the "test" data. Compare the model predictions and known test outcomes throught the error() function and return the value.
+
+use the function rep(seq(K)) takes the sequence 1,2,3.., k and repeats it as many times as necessary to obtain a vector as long as abalone.train. sample() shuffles the list that we generated through the call to rep(..)
+leave.in= instance does not belong to fold
+hold.out = instance belonbgs to fold
+
+error- computes the error once every instance has a prediction 
 ```{r EDA.8, echo=TRUE}
 
 evaluate.knn <- function(f, train, test, error, k) {
@@ -224,8 +245,8 @@ for (j in seq_along(knn.k)) {
 cat("\n")
 ```
 
-LINE 169 parameters looking at knn(want something that starts off small and gets bigger and useful. samll gives nice spread and bigger doesn't)
-sapply= apply ans simplify
+
+we now have the "honest estimate" we have clear adn more reliable measure of how the configuration will behave on the unseen data that it will encounter 
 
 ```{r EDA.9, echo=TRUE}
 plot(knn.k, wse, type="l", lwd=2, col="orange", ylab="Error", ylim=range(c(0, wse, cve)))
@@ -237,7 +258,8 @@ legend("bottomright", c("Within-Sample", "Out-of-Sample (CV)"), col=c("orange", 
 
 ```
 
-it's a good idea to use the out-of-sample data rather than the within sample data and it gives the perfomance measure of the turning data- cross validation and test have similar charateristics.
+It's good when the CV(out-of-sample) errors are higher this is because it provides an honest estimates performance for "unknown" data.The minsplit value(0) performs very well on data it has already seen when it is evaluated on and it seems to do very well but it hasn't generalised. When the minsplit error measures is baised on unseen data it performs poorly.
+cross validation and test have similar charateristics.
 
 We are trying to find the within sample and cross validation errors. 
 If i give you an exam, you  k = 1, give example, give prediction in the database, so can;t use the within sample error in k because they will bias towards memorisation, false signal to, so need to have som ways of measuring, in the way it's honest, when it's applied to the data it hasn't data (cross validation: build data on the train, )
@@ -257,6 +279,44 @@ Now we are trying to see how well the learning model performed by using the `MSE
 print(MSE(abalone.test$rings, yhat.knn))
 print(RSQ(abalone.test$rings, yhat.knn))
 ```
+
+## Linear Modelling 
+
+Using the lm()- we want to return the trained model object and predict() function with the data obtained from lm() to obtain predictions for the unseen instances 
+
+```{r lm.part1 , echo=TRUE}
+abalone.lm <- lm(f, abalone.train)
+yhat.lm <- predict(abalone.lm, abalone.test)
+
+```
+
+we want to evaluate the model performance that we got from the predict() function call
+```{r aval lm.part1 , echo=TRUE}
+print(MSE(abalone.test$rings, yhat.lm))
+print(RSQ(abalone.test$rings, yhat.lm))
+
+```
+
+Then we inspect the model
+```{r summary.lm , echo=TRUE}
+summary(abalone.lm)
+
+```
+
+#Comparing the lm() and kNN performance:
+We the comparing the lm() and the KNN performance to find out which one gives us a better explanation of our data
+
+```{r summary.lm , echo=TRUE}
+print(RSQ(abalone.test$rings, yhat.knn))
+```
+
+
+```{r summary.lm , echo=TRUE}
+print(RSQ(abalone.test$rings, yhat.lm))
+
+```
+Compared to the KNN, we can see that the linear models performance is a little lower. The results shows us that the linear model has more explanatory power over KNN
+
 
 
 
@@ -297,7 +357,7 @@ fitted.residuals.plot <- function(y, yhat,
   resid <- y - yhat
   
   if (is.null(ylim)) {
-    r <- max(abs(range(resid)))
+    r <- max (range(resid))
     ylim <- c(-r, r)
   }
   
@@ -311,6 +371,7 @@ fitted.residuals.plot <- function(y, yhat,
   abline(h=0, lty=2, col="gray")
 }
 ```
+
 
 Now we can use the previous `fitted.residuals.plot` function to visualise the `lm()` model performance that we worked on earlier, and the kNN performance:
 
@@ -328,17 +389,20 @@ band of errors above and below the plot that are
 
 ## (Insight)
  We also want to gain an insight of the age of the abalone based on the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
+ 
 ## Tree visualisation for insight
 
-```{r single , echo=TRUE}
+Select and tun the the minslpit and minbucket values, build a single tree of abalone.train and print the single tree. Trees are not very sensitive to noise.
+use the as.party() function to convert an rpart object into a partykit object to provide better print and plot functions:
 
+```{r single , echo=TRUE}
 single.tree <- as.party(rpart(f, abalone.train, cp=0, xval=0, minsplit=350, minbucket = 134))
+
 plot(single.tree)
+
 print(single.tree)
 
 ```
-not very sensitive to noise
-
 
 
 
