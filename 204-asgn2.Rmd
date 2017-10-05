@@ -5,9 +5,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-.libPaths("H:/R")
+#.libPaths("H:/R")
 library(ggplot2)
-#library(plyr)
 library(rpart)
 library(partykit)
 ```
@@ -20,16 +19,20 @@ library(partykit)
 # Problem setup - load data and exploratory data analysis (EDA)
 We'll start by looking at the "Abalone" data. 
 
+We are focusing on a supervised learning methods to model data. We perform EDA to find possible feature transformations and perform basic feature selection. We want to build a k-nearest neighbour regressors (a non-parametric modelling approach), and we use`lm()` function and related functions to build a linear regression model (a parametric model). 
+
+As the abalone adds one ring to their shell each year but their first year, we could estimate the age of the abalone fairly precise by adding 1.5 to the number of rings (Credit: [Cleaning abalone data]). 
+
+
+
 The data is supplied in a CSV file. Let's start by loading this into R:
 ```{r load data, echo=TRUE}
 abalone <- read.csv("abalone.csv")
 f <- rings~.
 ```
 
-As the abalone adds one ring to their shell each year but their first year, we could estimate the age of the abalone fairly precise by adding 1.5 to the number of rings (Credit: [Cleaning abalone data]). 
 
-
-Now, we should split the data into two parts - a section for exploration and training, and another for testing.
+We split the data into two parts - a section for exploration and training, and another for testing.
 
 ```{r split abalone data, echo=TRUE}
 train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
@@ -50,13 +53,14 @@ Then we are looking to plot the response (the measured number of rings):
 ```{r EDA.2, echo=TRUE}
 hist(abalone.train$rings)
 ```
-
- 
+Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
  cor(abalone.train[, -1])
- cor(abalone.test[ , -1])
 ```
-get rid of length, height,weight.shucked, weight.viscera
+
+```{r EDA.3.5, echo=TRUE}
+plot(abalone.train, pch=19, col="orange")
+```
 
 
 ```{r EDA.4, echo=TRUE}
@@ -70,44 +74,32 @@ abalone.test$height <- NULL
 abalone.test$weight.shucked <- NULL
 abalone.test$weight.viscera <- NULL
 
+
 ```
 
+```{r summary after cleaning data, echo=TRUE}
+ summary(abalone.train)
+```
 
 Next, we should examine the correlations in our data:
+```{r EDA cor after cleaning, echo=TRUE}
+ cor(abalone.train[, -1])
+```
+
 ```{r EDA.5, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
 
-Let's look at the weight of the whole abalone first: 
-```{r EDA.2.1, echo=TRUE}
-qplot(rings,
-      data = abalone,
-      geom = "histogram")
-```
+
+get rid of length, height,weight.shucked, weight.viscera
+
+
+
 
 However, we are more interested in finding whether different sexes affect the distributions. So we have to make separate plots for each sex by using `facets` argument in the `qlot()` function. It will have the tilde on the left hand side to let us know that what variable we have to separate the data by for vertically arranged panels and the right hand side lets us know what variable we want to separate by for horizontal panels. If we want only one and not both, we can use a period for the other axis, like below. The `binwidth` argument is added so `ggplot` will no longer complain (Source: [Cleaning Abalone data]).
 
-```{r EDA.2.2, echo=TRUE}
-qplot(rings,
-      data = abalone,
-      geom = "histogram",
-      facets = sex~.,
-      binwidth = 20)
-```
 
-```{r EDA.2.2 sex and ordered factor, echo=TRUE}
-abalone$sex <- ordered(abalone$sex,
-                       levels = c("I", "M", "F"),
-                       labels = c("Infant", "Male", "Female"))
-
-#redo histogram
-qplot(rings,
-      data = abalone,
-      geom = "histogram",
-      facets = sex~.,
-      binwidth = 20)
-```
 
 ```{r EDA.2.3 boxplot, echo=TRUE}
 qplot(sex, rings,
@@ -116,33 +108,28 @@ qplot(sex, rings,
       fill = sex)
 ```
 
-
-
-
-```{r EDA.2.4, echo=TRUE}
-qplot(diameter, rings, 
-      data = abalone, 
-      color = sex)
-```
       
       
      
-```{r EDA.2.5, echo=TRUE}
+```{r EDA.2.4, echo=TRUE}
 qplot(diameter, rings, 
       data = abalone, 
       color = sex)  +
   geom_smooth(slope = 1)
 ``` 
-     
-```{r save, echo=TRUE}  
-     save(abalone, file = "abalone_trimmed.Rdata")
-```
-     
+
+
+
+
+
 ## Regression - k-Nearest Neighbours (kNN)
 
 We are trying to predict the age of the abalone based on the diameter of the shell. They grow by adding new layers to their shell, which means there is an increase of the shell diameter, in addition to the entire inside of the shell which will increase the thickness of the shell (Source: [Abalone Reproduction and Growth])
 
-```{r MSE, echo=TRUE}
+We are working towards a regression problem as shown/confirmed by our EDA, so we define two functions that we will use later to evaluate our models. One is to compute mean squared error (MSE) and another is to compute the coefficient of determination (R-Squared) of predictions. These functions work on two vectors: a vector of known outcomes (`y`) and a vector of model predictions (`yhat`):
+
+
+```{r regression evaluators, echo=TRUE}
 MSE <- function(y, yhat) mean((y - yhat)^2)
 
 RSQ <- function(y, yhat) 1 - sum((y - yhat)^2) / sum((y - mean(y))^2)
@@ -206,6 +193,8 @@ evaluate.knn <- function(f, train, test, error, k) {
   error(y, yhat)
 }
 
+##honest estimation
+
 evaluate.knn.cv <- function(f, data, K, folds, error, knn.k) {
   mean(sapply(seq(K), function(k) {
     leave.in <- data[folds != k, ] ## data not in our current fold
@@ -241,17 +230,68 @@ text(knn.k[which.min(cve)], min(cve), sprintf("CV-min=(%d, %.2f)", knn.k[which.m
 legend("bottomright", c("Within-Sample", "Out-of-Sample (CV)"), col=c("orange", "purple"), lwd=2, bty="n")
 
 ```
+
 it's a good idea to use the out-of-sample data rather than the within sample data and it gives the perfomance measure of the turning data- cross validation and test have similar charateristics.
+
+We are trying to find the within sample and cross validation errors. 
+If i give you an exam, you  k = 1, give example, give prediction in the database, so can;t use the within sample error in k because they will bias towards memorisation, false signal to, so need to have som ways of measuring, in the way it's honest, when it's applied to the data it hasn't data (cross validation: build data on the train, )
+
 
 ```{r , echo=TRUE}
 k.selected <- knn.k[which.min(cve)]
 knn.mdl <- knn(f, abalone.train, k.selected)
 yhat.knn <- predict(knn.mdl, abalone.test)
+
 ```
 
 
-## (Insight)
- We also want to gain an insight of the age of the abalone based on the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
+
+Now we are trying to see how well the learning model performed by using the `MSE` and `RSQ` functions that we have defined above:
+```{r eval eda, echo=TRUE}
+print(MSE(abalone.test$rings, yhat.knn))
+print(RSQ(abalone.test$rings, yhat.knn))
+```
+
+
+This plot will take the known response values (`y`) and the predictions of a model (`yhat`), along with some other optional formatting arguments. The function will compute the residuals of the model, and then plot the model predictions on the x-axis and the residuals on the y-axis. The plot will also add a smoothing line (called a lowess line) using the `lowess` function to smooth the relationship between `yhat` and the residuals. 
+
+```{r fitted residuals plot, echo=TRUE}
+fitted.residuals.plot <- function(y, yhat, 
+                                  main=NULL, 
+                                  xlim=NULL, xlab=expression(hat(y)),
+                                  ylim=NULL, ylab="Residual",
+                                  ...) {
+  resid <- y - yhat
+  
+  if (is.null(ylim)) {
+    r <- max(abs(range(resid)))
+    ylim <- c(-r, r)
+  }
+  
+  plot(yhat, resid, 
+       xlim=xlim, xlab=xlab, 
+       ylim=ylim, ylab=ylab, 
+       main=main, ...)
+  
+  lines(lowess(yhat, resid), col="#ce2227", lty=2)
+  
+  abline(h=0, lty=2, col="gray")
+}
+
+```
+
+
+Now we can use the previous `fitted.residuals.plot` function to visualise the `lm()` model performance that we worked on earlier, and the kNN performance:
+```{r visualise, echo=TRUE}
+### PUT YOUR CALLS HERE
+fitted.residuals.plot(abalone.test$rings, yhat.knn)
+```
+
+Between predicted variance on the errors gets larger
+errors actual magnitude of the errors....
+band of errors above and below the plot that are 
+
+
  
 ## Linear Modelling 
 
@@ -274,32 +314,10 @@ summary(abalone.lm)
 
 ```
 
-```{r fitted residuals , echo=TRUE}
-fitted.residuals.plot <- function(y, yhat, 
-                                  main=NULL, 
-                                  xlim=NULL, xlab=expression(hat(y)),
-                                  ylim=NULL, ylab="Residual",
-                                  ...) {
-  resid <- y - yhat
-  
-  if (is.null(ylim)) {
-    r <- max (range(resid))
-    ylim <- c(-r, r)
-  }
-  
-  plot(yhat, resid, 
-       xlim=xlim, xlab=xlab, 
-       ylim=ylim, ylab=ylab, 
-       main=main, ...)
-  
-  lines(lowess(yhat, resid), col="#ce2227", lty=2)
-  
-  abline(h=0, lty=2, col="gray")
-}
-```
 
-
-## Tree visualations 
+## (Insight)
+ We also want to gain an insight of the age of the abalone based on the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
+## Tree visualisation for insight
 
 ```{r lm.part1 , echo=TRUE}
 
@@ -315,6 +333,8 @@ not very sensitive to noise
 
 ```
 
+##
+Fitting the noise, build an ensemble, you're building the forest, has signal with another set of noise, hope to all of the noise components will cancel each other out so when you average it will be 0. 
 
 
 [Abalone Reproduction and Growth]: http://www.marinebio.net/marinescience/06future/abrepro.htm
