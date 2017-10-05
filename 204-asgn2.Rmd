@@ -17,12 +17,11 @@ library(partykit)
 - Ruth Banda
 
 # Problem setup - load data and exploratory data analysis (EDA)
-We'll start by looking at the "Abalone" data. 
-
-We are focusing on a supervised learning methods to model data. We perform EDA to find possible feature transformations and perform basic feature selection. We want to build a k-nearest neighbour regressors (a non-parametric modelling approach), and we use`lm()` function and related functions to build a linear regression model (a parametric model). 
+We'll start by looking at the "Abalone" data. Abalone are being catched commercially in the last 20+ years so the commercial catch of abalone worldwide has declined from 18 000 mt to over 10 000 mt. Several reasons include illegal harvesting (the most important reason for the decline), predation, mortality of small abalone, over harvesting (they are easily over harvested due to slow growth and variable reproductive success), competition between sea urchins and other speciies conquering abalone food and living space, and loss of habitat because of coastal "development" and polution have destroyed large areas of abalone habitat (Source: [Facts About Abalone]). 
 
 As the abalone adds one ring to their shell each year but their first year, we could estimate the age of the abalone fairly precise by adding 1.5 to the number of rings (Credit: [Cleaning abalone data]). 
 
+We are focusing on a supervised learning methods to model data. We perform EDA to find possible feature transformations and perform basic feature selection. We want to build a k-nearest neighbour regressors (a non-parametric modelling approach), and we use`lm()` function and related functions to build a linear regression model (a parametric model). 
 
 
 The data is supplied in a CSV file. Let's start by loading this into R:
@@ -32,7 +31,7 @@ f <- rings~.
 ```
 
 
-We split the data into two parts - a section for exploration and training, and another for testing.
+We split the data into two parts - a section for exploration and training, and another for testing. The purpose is to want to know how a model behaves on data it has not seen, compared to the data that was used in its training. So we choose to do a 50-50 split using the `sample()` function:
 
 ```{r split abalone data, echo=TRUE}
 train.idx <- sample(nrow(abalone), 0.5*nrow(abalone))
@@ -40,8 +39,12 @@ abalone.train <- abalone[train.idx, ]
 abalone.test  <- abalone[-train.idx, ] ## note the negative indexing to REMOVE instances!
 ```
 
+Now we can focus on the analysis. We explore the data using simple visualisation and descriptive statistics to see if we can focus on certain features (rather than all features) to make the visualisation and analysis easier.
 
-We should start by looking at some basic descriptive information about the data:
+## Exploratory Data Analysis (EDA)
+The purpose of EDA is to gain a better understanding of the abalone data so that after performing some basic EDA before modelling would decrease the time and effort later required to get good-performing models. 
+
+So, we should start by looking at some basic descriptive information about the data:
 ```{r EDA.1, echo=TRUE}
  summary(abalone.train)
 ```
@@ -49,19 +52,26 @@ Here, we focus on the training data instead of the entire data so that when we m
 
 As shown above, we are dealing with continuous data, hence the response for the number of `Rings` is our continuous data making it a regression problem. 
 
-Then we are looking to plot the response (the measured number of rings):
+Then we plot the response (the measured number of rings):
 ```{r EDA.2, echo=TRUE}
 hist(abalone.train$rings)
 ```
+
 Next, we should examine the correlations in our data:
 ```{r EDA.3, echo=TRUE}
  cor(abalone.train[, -1])
 ```
+Looking at the results of the correlations in our data, there is not much of strong correlation between the features for `length`, `height`, `weight.shucked` and `weight.viscera`. However, the relationship between the features of the `sex`, `diameter`, `weight.whole`, `weight.shell` and the `rings` response is considerably stronger. 
+
+So this is a good sign that we can build the predictive models based on the data. We back it up with a visual analysis (a scatterplot) of the data:
 
 ```{r EDA.3.5, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
+Ideally, we would see a lot of straight lines indicating strong correlations, but since the `length`, `height`, `weight.shucked` and `weight.viscera` look similarly and are more scattered, they are less useful. 
+
+Now we just have to get rid of these in both of the  `abalone.train` and `abalone.test` data so that they have the same features: 
 
 ```{r EDA.4, echo=TRUE}
 abalone.train$length <- NULL
@@ -73,53 +83,49 @@ abalone.test$length <- NULL
 abalone.test$height <- NULL
 abalone.test$weight.shucked <- NULL
 abalone.test$weight.viscera <- NULL
-
-
 ```
 
+Then, we look at the basic descriptive information of our data which we have cleaned:
 ```{r summary after cleaning data, echo=TRUE}
  summary(abalone.train)
 ```
 
-Next, we should examine the correlations in our data:
+Afterwards, we should examine the correlations in our clean data:
 ```{r EDA cor after cleaning, echo=TRUE}
  cor(abalone.train[, -1])
 ```
+We are now seeing stronger correlation relationship between our features and the `rings` response. This is a good sign that the data can now be used to build our predictive models. 
 
-```{r EDA.5, echo=TRUE}
+Hence, we will now plot the data based on the new correlations of the `abalone.train` dataset, which gives us a better visualition of the data:
+```{r abalone train after cleaning, echo=TRUE}
 plot(abalone.train, pch=19, col="orange")
 ```
 
 
-
-get rid of length, height,weight.shucked, weight.viscera
-
-
-
-
-However, we are more interested in finding whether different sexes affect the distributions. So we have to make separate plots for each sex by using `facets` argument in the `qlot()` function. It will have the tilde on the left hand side to let us know that what variable we have to separate the data by for vertically arranged panels and the right hand side lets us know what variable we want to separate by for horizontal panels. If we want only one and not both, we can use a period for the other axis, like below. The `binwidth` argument is added so `ggplot` will no longer complain (Source: [Cleaning Abalone data]).
-
-
-
-```{r EDA.2.3 boxplot, echo=TRUE}
+However, we are more interested in finding whether different sexes affect the distributions. We make a boxplot using `qlot()` from `ggplot2` library to see some of the crucial features in the data than the ones with the earlier plotted historgrams. So we can do this by putting the `rings` on the y-axis, separting it by `sex` on the x-axis. The `geom` is set to boxplot. There is also a `fill` argument which the `qlot()` will then turn the factor column into 'prettier' colour scheme.  (Source: [Cleaning Abalone data]).
+```{r boxplot, echo=TRUE}
 qplot(sex, rings,
       data = abalone,
       geom = "boxplot",
       fill = sex)
 ```
 
+
+###Bhavisha's interpretation (1 paragraph here):
       
-      
+
+We have removed some of the less useful features from our data, so now we can look at how the diameters of the abalone relate to each other. 
+
+We will focus on the `diameter` vs `rings` coloured by `sex` by plotting a scatterplot. `geom_smooth()` is smoothed conditional means, it helps us see patterns in the presence of overplooting:
      
 ```{r EDA.2.4, echo=TRUE}
 qplot(diameter, rings, 
       data = abalone, 
       color = sex)  +
-  geom_smooth(slope = 1)
+  geom_smooth()
 ``` 
 
-
-
+Based on smoothed conditonal means produced by the `geom_smooth()` function, we can see that there is no difference between the `diameter` of the abalone and the `rings` in `female` and `male` abalone, but there is a stronger correlation (a fairly straight line) between `infant` abalone and older abalone (`female`/`male`). 
 
 
 ## Regression - k-Nearest Neighbours (kNN)
@@ -253,6 +259,33 @@ print(RSQ(abalone.test$rings, yhat.knn))
 ```
 
 
+
+ 
+## Linear Modelling 
+
+
+```{r lm.part1 , echo=TRUE}
+abalone.lm <- lm(f, abalone.train)
+yhat.lm <- predict(abalone.lm, abalone.test)
+
+```
+
+
+```{r eval , echo=TRUE}
+print(MSE(abalone.test$rings, yhat.lm))
+print(RSQ(abalone.test$rings, yhat.lm))
+
+```
+
+```{r summary.lm , echo=TRUE}
+summary(abalone.lm)
+
+```
+
+Summary statistics can give us a quick measure of model performance, we need to try and visualise the performance of the models too. To achieve this, we will have to use a fitted residuals plot below.
+
+## Fitted residuals plot
+
 This plot will take the known response values (`y`) and the predictions of a model (`yhat`), along with some other optional formatting arguments. The function will compute the residuals of the model, and then plot the model predictions on the x-axis and the residuals on the y-axis. The plot will also add a smoothing line (called a lowess line) using the `lowess` function to smooth the relationship between `yhat` and the residuals. 
 
 ```{r fitted residuals plot, echo=TRUE}
@@ -277,49 +310,27 @@ fitted.residuals.plot <- function(y, yhat,
   
   abline(h=0, lty=2, col="gray")
 }
-
 ```
-
 
 Now we can use the previous `fitted.residuals.plot` function to visualise the `lm()` model performance that we worked on earlier, and the kNN performance:
+
 ```{r visualise, echo=TRUE}
-### PUT YOUR CALLS HERE
 fitted.residuals.plot(abalone.test$rings, yhat.knn)
 ```
+
+We are trying to see the bias-variance between predicted variance on errors that gets larger than the actual magnitude of the errors. The band of the errors above proand below the plot that are
+The red dashed line is a smooth fit to the residuals has its purpose to make it easier to identify a trend. 
 
 Between predicted variance on the errors gets larger
 errors actual magnitude of the errors....
 band of errors above and below the plot that are 
 
 
- 
-## Linear Modelling 
-
-
-```{r lm.part1 , echo=TRUE}
-abalone.lm <- lm(f, abalone.train)
-yhat.lm <- predict(abalone.lm, abalone.test)
-
-```
-
-
-```{r aval lm.part1 , echo=TRUE}
-print(MSE(abalone.test$rings, yhat.lm))
-print(RSQ(abalone.test$rings, yhat.lm))
-
-```
-
-```{r summary.lm , echo=TRUE}
-summary(abalone.lm)
-
-```
-
-
 ## (Insight)
  We also want to gain an insight of the age of the abalone based on the diameter of the shell in correlation to the number of rings (response) on the shell. This is because the abalone growth rings is due to feeding which resulted in concentric rings that are laid down at the outermost edge of the shell. They have circular patterns which can also help us predict the age of the abalones and the types of food that are available to them when they are young. 
 ## Tree visualisation for insight
 
-```{r lm.part1 , echo=TRUE}
+```{r single , echo=TRUE}
 
 single.tree <- as.party(rpart(f, abalone.train, cp=0, xval=0, minsplit=350, minbucket = 134))
 plot(single.tree)
@@ -328,14 +339,10 @@ print(single.tree)
 ```
 not very sensitive to noise
 
-```{r lm.part1 , echo=TRUE}
 
 
-```
 
-##
-Fitting the noise, build an ensemble, you're building the forest, has signal with another set of noise, hope to all of the noise components will cancel each other out so when you average it will be 0. 
-
+[Facts About Abalone]: http://fishtech.com/facts.html
 
 [Abalone Reproduction and Growth]: http://www.marinebio.net/marinescience/06future/abrepro.htm
 
