@@ -8,6 +8,8 @@ knitr::opts_chunk$set(echo = TRUE)
 .libPaths("H:/R")
 library(ggplot2)
 #library(plyr)
+library(rpart)
+library(partykit)
 ```
 
 #Group members
@@ -239,7 +241,7 @@ text(knn.k[which.min(cve)], min(cve), sprintf("CV-min=(%d, %.2f)", knn.k[which.m
 legend("bottomright", c("Within-Sample", "Out-of-Sample (CV)"), col=c("orange", "purple"), lwd=2, bty="n")
 
 ```
-
+it's a good idea to use the out-of-sample data rather than the within sample data and it gives the perfomance measure of the turning data- cross validation and test have similar charateristics.
 
 ```{r , echo=TRUE}
 k.selected <- knn.k[which.min(cve)]
@@ -272,7 +274,46 @@ summary(abalone.lm)
 
 ```
 
+```{r fitted residuals , echo=TRUE}
+fitted.residuals.plot <- function(y, yhat, 
+                                  main=NULL, 
+                                  xlim=NULL, xlab=expression(hat(y)),
+                                  ylim=NULL, ylab="Residual",
+                                  ...) {
+  resid <- y - yhat
+  
+  if (is.null(ylim)) {
+    r <- max (range(resid))
+    ylim <- c(-r, r)
+  }
+  
+  plot(yhat, resid, 
+       xlim=xlim, xlab=xlab, 
+       ylim=ylim, ylab=ylab, 
+       main=main, ...)
+  
+  lines(lowess(yhat, resid), col="#ce2227", lty=2)
+  
+  abline(h=0, lty=2, col="gray")
+}
+```
 
+
+## Tree visualations 
+
+```{r lm.part1 , echo=TRUE}
+
+single.tree <- as.party(rpart(f, abalone.train, cp=0, xval=0, minsplit=350, minbucket = 134))
+plot(single.tree)
+print(single.tree)
+
+```
+not very sensitive to noise
+
+```{r lm.part1 , echo=TRUE}
+
+
+```
 
 
 
