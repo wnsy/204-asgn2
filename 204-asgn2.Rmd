@@ -306,12 +306,12 @@ summary(abalone.lm)
 #Comparing the lm() and kNN performance:
 We the comparing the lm() and the KNN performance to find out which one gives us a better explanation of our data
 
-```{r summary.lm , echo=TRUE}
+```{r rsq knn , echo=TRUE}
 print(RSQ(abalone.test$rings, yhat.knn))
 ```
 
 
-```{r summary.lm , echo=TRUE}
+```{r rsq lm, echo=TRUE}
 print(RSQ(abalone.test$rings, yhat.lm))
 
 ```
@@ -324,7 +324,7 @@ Compared to the KNN, we can see that the linear models performance is a little l
 ## Linear Modelling 
 
 
-```{r lm.part1 , echo=TRUE}
+```{r lm 1 , echo=TRUE}
 abalone.lm <- lm(f, abalone.train)
 yhat.lm <- predict(abalone.lm, abalone.test)
 
@@ -337,7 +337,7 @@ print(RSQ(abalone.test$rings, yhat.lm))
 
 ```
 
-```{r summary.lm , echo=TRUE}
+```{r summary, echo=TRUE}
 summary(abalone.lm)
 
 ```
@@ -395,7 +395,7 @@ band of errors above and below the plot that are
 Select and tun the the minslpit and minbucket values, build a single tree of abalone.train and print the single tree. Trees are not very sensitive to noise.
 use the as.party() function to convert an rpart object into a partykit object to provide better print and plot functions:
 
-```{r single , echo=TRUE}
+```{r single tree, echo=TRUE}
 single.tree <- as.party(rpart(f, abalone.train, cp=0, xval=0, minsplit=350, minbucket = 134))
 
 plot(single.tree)
